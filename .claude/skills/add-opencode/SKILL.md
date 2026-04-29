@@ -126,7 +126,7 @@ These variables are read **on the host** and passed into the container only when
 - `OPENCODE_PROVIDER` — OpenCode provider id, e.g. `openrouter`, `anthropic`, `deepseek`.
 - `OPENCODE_MODEL` — full model id in `provider/model` form, e.g. `deepseek/deepseek-chat`.
 - `OPENCODE_SMALL_MODEL` — optional second model for lighter tasks; defaults to `OPENCODE_MODEL` if unset.
-- `ANTHROPIC_BASE_URL` — **required for non-`anthropic` providers.** The opencode container provider passes this as the `baseURL` for the upstream provider config so requests route through OneCLI's credential proxy or directly to the provider's API. Set it to the provider's API base URL (e.g. `https://api.deepseek.com/v1`, `https://openrouter.ai/api/v1`).
+- `ANTHROPIC_BASE_URL` — **required for non-`anthropic` providers.** The opencode host provider forwards this into the container, and the container provider passes it as the `baseURL` for the upstream provider config so requests route through OneCLI's credential proxy or directly to the provider's API. Set it to the provider's API base URL (e.g. `https://api.deepseek.com/v1`, `https://openrouter.ai/api/v1`, `https://opencode.ai/zen/go/v1`).
 
 Credentials: register provider API keys in OneCLI with the matching `--host-pattern` (e.g. `api.deepseek.com`, `openrouter.ai`). OneCLI injects them via `HTTPS_PROXY` in the container — the key never lives in `.env` or the container environment.
 
@@ -181,9 +181,9 @@ OPENCODE_MODEL=anthropic/claude-sonnet-4-20250514
 OPENCODE_SMALL_MODEL=anthropic/claude-haiku-4-5-20251001
 ```
 
-#### OpenCode Zen (`x-api-key`, not Bearer)
+#### OpenCode Zen / Go credential header
 
-Zen's HTTP API (e.g. `POST …/zen/v1/messages`) expects the key in the **`x-api-key`** header. If OneCLI injects **`Authorization: Bearer …`** only, Zen often returns **401 / "Missing API key"** even though the gateway is working.
+OpenCode's direct HTTP API examples use **`x-api-key`**. NanoClaw's OpenCode provider goes through the OpenCode CLI / AI SDK, which emits an **`Authorization: Bearer <apiKey>`** header from the configured placeholder key. For OneCLI proxy injection, register Zen/Go secrets against **`Authorization`** so OneCLI replaces the placeholder header. If you use `x-api-key` here, Go requests can fail with **401 / "Invalid API key"** because the upstream sees `Authorization: Bearer placeholder`.
 
 **Naming:** NanoClaw **`AGENT_PROVIDER=opencode`** (DB `agent_provider`) means "run the **OpenCode agent provider**." Separately, **`OPENCODE_PROVIDER=opencode`** in `.env` is OpenCode's **Zen provider id** inside the OpenCode config (see [Zen docs](https://opencode.ai/docs/zen/)).
 
@@ -204,6 +204,33 @@ Use a real Zen model id from the docs; `big-pickle` is one example.
 onecli secrets create --name "OpenCode Zen" --type generic \
   --value YOUR_ZEN_KEY --host-pattern opencode.ai \
   --header-name "x-api-key" --value-format "{value}"
+```
+
+#### OpenCode Go / Zen Go
+
+OpenCode Go uses the provider id `opencode-go`. Model ids in NanoClaw/OpenCode config use `opencode-go/<model-id>`.
+
+For DeepSeek through Go:
+
+```env
+OPENCODE_PROVIDER=opencode-go
+OPENCODE_MODEL=opencode-go/deepseek-v4-pro
+OPENCODE_SMALL_MODEL=opencode-go/deepseek-v4-flash
+ANTHROPIC_BASE_URL=https://opencode.ai/zen/go/v1
+```
+
+Register the Go key for the OpenCode CLI's `Authorization` header:
+
+```bash
+onecli secrets create --name "OpenCode Go" --type generic \
+  --value YOUR_GO_KEY --host-pattern opencode.ai \
+  --header-name "Authorization" --value-format "Bearer {value}"
+```
+
+Then grant that secret to each agent that should use Go:
+
+```bash
+onecli agents set-secrets --id <agent-id> --secret-ids <existing-ids>,<opencode-go-secret-id>
 ```
 
 ### Per group / per session
