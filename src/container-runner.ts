@@ -314,6 +314,17 @@ function buildMounts(
     mounts.push(...validated);
   }
 
+  if (containerConfig.knowledge?.enabled !== false) {
+    const vaultPath = containerConfig.knowledge?.vaultPath || '/srv/obsidian';
+    const mnemonDataDir = containerConfig.knowledge?.mnemonDataDir || '/srv/mnemon';
+    if (fs.existsSync(vaultPath)) {
+      mounts.push({ hostPath: vaultPath, containerPath: '/workspace/knowledge/obsidian', readonly: false });
+    }
+    if (fs.existsSync(mnemonDataDir)) {
+      mounts.push({ hostPath: mnemonDataDir, containerPath: '/workspace/knowledge/mnemon', readonly: false });
+    }
+  }
+
   // Provider-contributed mounts (e.g. opencode-xdg)
   if (providerContribution.mounts) {
     mounts.push(...providerContribution.mounts);

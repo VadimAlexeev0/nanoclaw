@@ -47,6 +47,14 @@ export interface ContainerConfig {
   agentGroupId?: string;
   /** Max messages per prompt. Falls back to code default if unset. */
   maxMessagesPerPrompt?: number;
+  /** Personal knowledge system settings. */
+  knowledge?: {
+    enabled?: boolean;
+    vaultPath?: string;
+    mnemonDataDir?: string;
+    mnemonStore?: string;
+    recallLimit?: number;
+  };
 }
 
 function emptyConfig(): ContainerConfig {
@@ -87,6 +95,7 @@ export function readContainerConfig(folder: string): ContainerConfig {
       assistantName: raw.assistantName,
       agentGroupId: raw.agentGroupId,
       maxMessagesPerPrompt: raw.maxMessagesPerPrompt,
+      knowledge: raw.knowledge,
     };
   } catch (err) {
     console.error(`[container-config] failed to parse ${p}: ${String(err)}`);

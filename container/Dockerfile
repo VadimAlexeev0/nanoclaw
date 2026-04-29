@@ -10,6 +10,9 @@
 # bind mount at runtime (see src/container-runner.ts). Source-only changes
 # never require an image rebuild.
 
+FROM golang:1.24 AS mnemon-builder
+RUN go install github.com/mnemon-dev/mnemon@latest
+
 FROM node:22-slim
 
 # ---- Build-time arguments ----------------------------------------------------
@@ -109,6 +112,7 @@ RUN --mount=type=cache,target=/root/.cache/pnpm \
     pnpm install -g "opencode-ai@${OPENCODE_VERSION}"
 
 # ---- Entrypoint --------------------------------------------------------------
+COPY --from=mnemon-builder /go/bin/mnemon /usr/local/bin/mnemon
 COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 

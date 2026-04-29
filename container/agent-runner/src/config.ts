@@ -16,6 +16,13 @@ export interface RunnerConfig {
   agentGroupId: string;
   maxMessagesPerPrompt: number;
   mcpServers: Record<string, { command: string; args: string[]; env: Record<string, string> }>;
+  knowledge: {
+    enabled: boolean;
+    vaultPath: string;
+    mnemonDataDir: string;
+    mnemonStore: string;
+    recallLimit: number;
+  };
 }
 
 const DEFAULT_MAX_MESSAGES = 10;
@@ -43,6 +50,14 @@ export function loadConfig(): RunnerConfig {
     agentGroupId: (raw.agentGroupId as string) || '',
     maxMessagesPerPrompt: (raw.maxMessagesPerPrompt as number) || DEFAULT_MAX_MESSAGES,
     mcpServers: (raw.mcpServers as RunnerConfig['mcpServers']) || {},
+    knowledge: {
+      enabled: (raw.knowledge as { enabled?: boolean } | undefined)?.enabled !== false,
+      vaultPath: '/workspace/knowledge/obsidian',
+      mnemonDataDir:
+        '/workspace/knowledge/mnemon',
+      mnemonStore: ((raw.knowledge as { mnemonStore?: string } | undefined)?.mnemonStore as string) || 'default',
+      recallLimit: ((raw.knowledge as { recallLimit?: number } | undefined)?.recallLimit as number) || 8,
+    },
   };
 
   return _config;
